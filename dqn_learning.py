@@ -72,8 +72,10 @@ class DQN_Learning(QTable_Learning):
     def q_value_calculation(self, state: np.ndarray, next_state: np.ndarray, reward: int, action: int):
         state_qvalue = max(self.model.predict(np.array([state, next_state])))
         sample = self.alpha * (reward + (self.gamma * max(state_qvalue[1])))
-        state_action_qvalue = (1 - self.alpha) * state_qvalue[0][action]
-        return state_action_qvalue + sample
+        state_q_value = state_qvalue[0]
+        state_action_qvalue = (1 - self.alpha) * state_q_value[action]
+        state_q_value[action] = state_action_qvalue + sample
+        return state_q_value
 
     def collect_data(self, env: gym.Env, observation: np.ndarray, size: int):
         for _ in range(size):
