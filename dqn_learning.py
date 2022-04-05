@@ -77,9 +77,9 @@ class DQN_Learning(QTable_Learning):
 
     def collect_data(self, env: gym.Env, observation: np.ndarray, size: int):
         for _ in range(size):
+            idx = self.buffer.store_frame(observation)
             action = self.random_action(observation=observation)
             observation, reward, done, _ = env.step(action)
-            idx = self.buffer.store_frame(observation)
             self.buffer.store_effect(idx, action, reward, done)
             if done:
                 observation = env.reset()
