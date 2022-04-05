@@ -8,6 +8,8 @@ from gym import spaces
 from gym.envs.toy_text import taxi
 from gym.envs.registration import register
 
+ENV_NAME = 'Taxi-v3-modified'
+
 class Modified_Taxi_Environment(taxi.TaxiEnv):
     def __init__(self):
         super().__init__()
