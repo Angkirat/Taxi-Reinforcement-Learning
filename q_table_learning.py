@@ -1,4 +1,4 @@
-from GymEnvironment import GymEnvironment
+from gym_environment import GymEnvironment
 from statistics import mean
 from tqdm import tqdm
 import logging
