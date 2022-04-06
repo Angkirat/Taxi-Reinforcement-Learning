@@ -10,17 +10,14 @@ from gym_environment import GymEnvironment
 class DQN_Learning(QTable_Learning):
     def __init__(
         self,
-        train_env: GymEnvironment,
-        test_env: GymEnvironment,
-        alpha: float = 1,
-        epsilon: float = 0.05,
-        gamma: float = 0.8,
-        model_file: str = None,
+        train_env: GymEnvironment, test_env: GymEnvironment,
+        alpha: float = 1, epsilon: float = 0.05,
+        gamma: float = 0.8, model_file: str = None,
         learning_rate: float = 1e-5,
         initial_state_collection: int = 1e5
     ) -> None:
-        super().__init__(train_env, alpha, epsilon, gamma, model_file)
-        self.model_file = "dqnModel"
+        super().__init__(train_env, alpha, epsilon, gamma, None)
+        self.model_file = model_file
         self.dqn_learning_rate = learning_rate
         self.model = self.create_model()
         self.buffer = util.ReplayBuffer(1e10, 1)
@@ -105,7 +102,7 @@ class DQN_Learning(QTable_Learning):
                           size=self.initial_state_collection)
         observation_batch, q_value_batch = self.batch_creation(
             batch_size=batch)
-        
+
         for _ in range(iteration):
 
             self.model.fit(observation_batch, q_value_batch,
@@ -120,7 +117,7 @@ class DQN_Learning(QTable_Learning):
         for _ in episode_count:
             episode_buffer = util.ReplayBuffer(1e5, 1)
             observation = self.env.env.reset()
-            
+
             # play full episode and store in buffer
             while True:
                 idx = episode_buffer.store_frame(observation)
@@ -129,7 +126,6 @@ class DQN_Learning(QTable_Learning):
                 episode_buffer.store_effect(idx, action, reward, done)
                 if done:
                     break
-            
 
             state_batch, action_batch, reward_batch, new_state_batch = episode_buffer.sample_all()
 
@@ -140,8 +136,6 @@ class DQN_Learning(QTable_Learning):
             ])
 
             self.model.train_on_batch(state_batch, q_value_batch)
-                
-
 
     def evaluate_model(self, episode_count: int):
         observation = self.evaluation_env.env.reset()

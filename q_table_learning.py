@@ -10,14 +10,17 @@ import tensorflow as tf
 
 class QTable_Learning:
 
-    def __init__(self, env: GymEnvironment, alpha: float = 1.0, epsilon: float = 0.05, gamma: float = 0.8, model_file: str = None) -> None:
+    def __init__(self, 
+        env: GymEnvironment, 
+        alpha: float = 1.0, epsilon: float = 0.05, 
+        gamma: float = 0.8, model_file: str = None
+    ) -> None:
         self.env = env
         self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon
         self._q_val = util.Counter()
         self.model_file = 'ModelOutput/RL-Qlearning.pkl' if model_file is None else model_file
-        self.load_model()
 
     def get_qval(self, state, action):
         return self._q_val[(state, action)]
