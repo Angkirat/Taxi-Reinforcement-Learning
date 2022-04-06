@@ -23,7 +23,7 @@ class DQN_Learning(QTable_Learning):
         super().__init__(train_env, alpha, epsilon, gamma, model_file)
         self.model_file = "dqnModel"
         self.dqn_learning_rate = learning_rate
-        self.dqn_model = self.create_model()
+        self.model = self.create_model()
         self.buffer = util.ReplayBuffer(10000000, 1)
         self.evaluation_env = test_env
         self.initial_state_collection = initial_state_collection
