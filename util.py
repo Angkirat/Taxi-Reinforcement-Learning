@@ -343,7 +343,7 @@ def sample_n_unique(sampling_f, n):
         candidate = sampling_f()
         if candidate not in res:
             res.append(candidate)
-    return
+    return res
 
 
 class ReplayBuffer(object):
@@ -432,6 +432,40 @@ class ReplayBuffer(object):
             0, self.num_in_buffer - 2), batch_size)
         return self._encode_sample(idxes)
 
+    def sample_all(self, shuffle=False):
+        """Sample `batch_size` different transitions.
+        i-th sample transition is the following:
+        when observing `obs_batch[i]`, action `act_batch[i]` was taken,
+        after which reward `rew_batch[i]` was received and subsequent
+        observation  next_obs_batch[i] was observed, unless the epsiode
+        was done which is represented by `done_mask[i]` which is equal
+        to 1 if episode has ended as a result of that action.
+        Parameters
+        ----------
+        shuffle: int
+            shuffle the list.
+        Returns
+        -------
+        obs_batch: np.array
+            Array of shape
+            (batch_size, img_h, img_w, img_c * frame_history_len)
+            and dtype np.uint8
+        act_batch: np.array
+            Array of shape (batch_size,) and dtype np.int32
+        rew_batch: np.array
+            Array of shape (batch_size,) and dtype np.float32
+        next_obs_batch: np.array
+            Array of shape
+            (batch_size, img_h, img_w, img_c * frame_history_len)
+            and dtype np.uint8
+        done_mask: np.array
+            Array of shape (batch_size,) and dtype np.float32
+        """
+        idxes = [val for val in range(self.num_in_buffer)]
+        if shuffle:
+            random.shuffle(idxes)
+        return self._encode_sample(idxes)
+
     def encode_recent_observation(self):
         """Return the most recent `frame_history_len` frames.
         Returns
@@ -441,7 +475,7 @@ class ReplayBuffer(object):
             and dtype np.uint8, where observation[:, :, i*img_c:(i+1)*img_c]
             encodes frame at time `t - frame_history_len + i`
         """
-        assert self.num_in_buffer > 0   #nosec
+        assert self.num_in_buffer > 0  # nosec
         return self._encode_observation((self.next_idx - 1) % self.size)
 
     def _encode_observation(self, idx):
