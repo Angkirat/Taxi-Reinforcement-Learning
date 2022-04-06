@@ -260,6 +260,7 @@ cython_debug/
 # Local History for Visual Studio Code
 .history/
 *.historic.*
+*.temp.*
 # Built Visual Studio Code Extensions
 *.vsix
 
