@@ -10,23 +10,22 @@ from gym_environment import GymEnvironment
 class DQN_Learning(QTable_Learning):
     def __init__(
         self,
-        train_env: GymEnvironment, test_env: GymEnvironment,
-        alpha: float = 1, epsilon: float = 0.05,
-        gamma: float = 0.8, model_file: str = None,
-        learning_rate: float = 1e-5,
+        env: GymEnvironment, alpha: float = 1,
+        epsilon: float = 0.05, gamma: float = 0.8,
+        model_file: str = None, learning_rate: float = 1e-5,
         initial_state_collection: int = 1e5
     ) -> None:
-        super().__init__(train_env, alpha, epsilon, gamma, None)
+        super().__init__(env, alpha, epsilon, gamma, None)
         self.model_file = model_file
         self.dqn_learning_rate = learning_rate
         self.model = self.create_model()
         self.buffer = util.ReplayBuffer(1e10, 1)
-        self.evaluation_env = test_env
+        self.evaluation_env = env
         self.initial_state_collection = initial_state_collection
 
     def create_model(self, hidden_layer_units: list = [100, 50], dropout: list = [0.5, 0.5]):
         model = tf.keras.Sequential(name="DQNModel")
-        model.add(tf.keras.Input(shape=self.env.env.observation_space.shape))
+        model.add(tf.keras.Input(shape=self.env.obs_shape))
         for i, (units, drop) in enumerate(zip(hidden_layer_units, dropout)):
             model.add(tf.keras.layers.Dense(
                 units,
@@ -42,7 +41,7 @@ class DQN_Learning(QTable_Learning):
                 name=f"Dropout_Layer_{(i+1)}"
             ))
         model.add(tf.keras.layers.Dense(
-            6,
+            self.env.action_size,
             activation=None,
             kernel_initializer=tf.keras.initializers.RandomUniform(
                 minval=-0.03, maxval=0.03),
