@@ -1,7 +1,6 @@
 import gym
 import tensorflow as tf
 import numpy as np
-import keras
 
 import util
 from q_table_learning import QTable_Learning
@@ -28,10 +27,10 @@ class DQN_Learning(QTable_Learning):
         self.evaluation_env = test_env
         self.initial_state_collection = initial_state_collection
 
-    def create_model(self, hidden_layer_units: list = [100, 50]):
-        model = keras.Sequential(name="DQNModel")
-        model.add(tf.keras.Input(shape=(4,)))
-        for i, units in enumerate(hidden_layer_units):
+    def create_model(self, hidden_layer_units: list = [100, 50], dropout: list = [0.5, 0.5]):
+        model = tf.keras.Sequential(name="DQNModel")
+        model.add(tf.keras.Input(shape=self.env.env.observation_space.shape))
+        for i, (units, drop) in enumerate(zip(hidden_layer_units, dropout)):
             model.add(tf.keras.layers.Dense(
                 units,
                 activation=tf.keras.activations.relu,
@@ -39,7 +38,11 @@ class DQN_Learning(QTable_Learning):
                     scale=2.0,
                     mode='fan_in',
                     distribution='truncated_normal'
-                ), name=f"HiddenLayer{i}"
+                ), name=f"Hidden_Layer_{(i+1)}"
+            ))
+            model.add(tf.keras.layers.Dropout(
+                drop,
+                name=f"Dropout_Layer_{(i+1)}"
             ))
         model.add(tf.keras.layers.Dense(
             6,
@@ -55,8 +58,6 @@ class DQN_Learning(QTable_Learning):
             loss=tf.keras.losses.MeanSquaredError(),
             metrics=[tf.keras.metrics.MeanSquaredError()]
         )
-
-        model.summary()
 
         return model
 
