@@ -31,15 +31,15 @@ class Modified_Taxi_Environment(taxi.TaxiEnv):
 
 def registerEnvironment():
     register(
-        id='Taxi-v3-modified',
+        id=ENV_NAME,
         entry_point=Modified_Taxi_Environment,
         max_episode_steps=500,
         reward_threshold=20.0
     )
 
 if __name__ == "__main__":
-    gym_env = gym.make('Taxi-v3-modified')
+    gym_env = gym.make(ENV_NAME)
     print(gym_env.observation_space)
 
-    tf_env = tf_agents.environments.suite_gym.load('Taxi-v3-modified')
+    tf_env = tf_agents.environments.suite_gym.load(ENV_NAME)
     print(tf_env.time_step_spec())
