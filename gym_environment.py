@@ -10,7 +10,9 @@ class GymEnvironment:
     def __init__(self, envName: str) -> None:
         self.envName = envName
         self.env = gym.make(envName)
-        self.action_size = len(self.getPossibleActions())
+        self.action_size = self.env.action_space.n
+        self.obs_shape = self.env.observation_space.shape
+        self.obs_count = self.env.observation_space.n
 
     def getPossibleActions(self) -> list:
         action_space = self.env.action_space
