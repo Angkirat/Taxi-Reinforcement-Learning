@@ -1,6 +1,6 @@
 import gym
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 
 import util
 from q_table_learning import QTable_Learning
@@ -23,7 +23,7 @@ class DQN_Learning(QTable_Learning):
         self.model_file = "dqnModel"
         self.dqn_learning_rate = learning_rate
         self.model = self.create_model()
-        self.buffer = util.ReplayBuffer(10000000, 1)
+        self.buffer = util.ReplayBuffer(1e10, 1)
         self.evaluation_env = test_env
         self.initial_state_collection = initial_state_collection
 
@@ -115,6 +115,33 @@ class DQN_Learning(QTable_Learning):
                               observation=obs, size=add_to_buffer)
             observation_batch, q_value_batch = self.batch_creation(
                 batch_size=batch)
+
+    def train_model_episode(self, episode_count: int):
+        for _ in episode_count:
+            episode_buffer = util.ReplayBuffer(1e5, 1)
+            observation = self.env.env.reset()
+            
+            # play full episode and store in buffer
+            while True:
+                idx = episode_buffer.store_frame(observation)
+                action = self.random_action(observation)
+                observation, reward, done, _ = self.env.env.step(action)
+                episode_buffer.store_effect(idx, action, reward, done)
+                if done:
+                    break
+            
+
+            state_batch, action_batch, reward_batch, new_state_batch = episode_buffer.sample_all()
+
+            # calculate Q Value of the model
+            q_value_batch = np.array([
+                self.q_value_calculation(state, next_state, reward, action)
+                for state, next_state, reward, action in zip(state_batch, action_batch, reward_batch, new_state_batch)
+            ])
+
+            self.model.train_on_batch(state_batch, q_value_batch)
+                
+
 
     def evaluate_model(self, episode_count: int):
         observation = self.evaluation_env.env.reset()
