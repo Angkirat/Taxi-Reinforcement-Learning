@@ -153,3 +153,4 @@ class DQN_Learning(QTable_Learning):
                     break
             evaluation_ep_reward.append(episode_reward)
             evaluation_ep_step.append(episode_step_count)
+        return evaluation_ep_reward, evaluation_ep_step
