@@ -20,6 +20,8 @@ class PolicyGradient_learning:
         self.model = self.create_model(hidden_layer_units, dropout)
         self.buffer = util.ReplayBuffer(1e5, 1)
         self.optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
+        self.epsilon = 0.5
+        self.discount = 1
 
     def create_model(self, hidden_layer_units: list, dropout: list):
         model = tf.keras.Sequential(name="Policy_Gradient")
@@ -46,14 +48,7 @@ class PolicyGradient_learning:
         return (-1 * log_prob * reward)
 
     def train(self, state_batch, reward_batch, action_batch):
-        sum_reward = 0
-        reward_list = []
-        reward_batch.reverse()
-        for r in reward_batch:
-            sum_reward = r + (self.discount * sum_reward)
-            reward_list.append(sum_reward)
-        reward_list.reverse()
-        for state, reward, action in tqdm(zip(state_batch, reward_list, action_batch)):
+        for state, reward, action in tqdm(zip(state_batch, reward_batch, action_batch)):
             with tf.GradientTape() as tape:
                 pred = self.model(np.array([state]), training=True)
                 loss = self.model_loss(pred, action, reward)
