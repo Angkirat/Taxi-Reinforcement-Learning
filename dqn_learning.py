@@ -137,12 +137,12 @@ class DQN_Learning(QTable_Learning):
             self.model.train_on_batch(state_batch, q_value_batch)
 
     def evaluate_model(self, episode_count: int):
-        observation = self.evaluation_env.env.reset()
         evaluation_ep_reward = []
         evaluation_ep_step = []
         for _ in range(episode_count):
             episode_step_count = 0
             episode_reward = 0
+            observation = self.evaluation_env.env.reset()
             while True:
                 action = self.compute_action(observation=observation)
                 observation, reward, done, _ = self.evaluation_env.env.step(
