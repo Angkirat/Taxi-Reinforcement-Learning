@@ -371,7 +371,7 @@ class ReplayBuffer(object):
         """
         self.lander = lander
 
-        self.size = size
+        self.size = int(size)
         self.frame_history_len = frame_history_len
 
         self.next_idx = 0
