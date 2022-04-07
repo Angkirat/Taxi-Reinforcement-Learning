@@ -1,5 +1,7 @@
 import gym
+import logging
 import numpy as np
+from tqdm import tqdm
 import tensorflow as tf
 
 import util
@@ -75,7 +77,10 @@ class DQN_Learning(QTable_Learning):
         return state_q_value
 
     def collect_data(self, env: gym.Env, observation: np.ndarray, size: int):
-        for _ in range(size):
+        print('\n\n')
+        print('Collecting data in the Replay Buffer')
+
+        for _ in tqdm(range(size)):
             idx = self.buffer.store_frame(observation)
             action = self.random_action(observation=observation)
             observation, reward, done, _ = env.step(action)
@@ -102,7 +107,10 @@ class DQN_Learning(QTable_Learning):
         observation_batch, q_value_batch = self.batch_creation(
             batch_size=batch)
 
-        for _ in range(iteration):
+        print('\n\n')
+        print('Training DQN model (random state)')
+
+        for _ in tqdm(range(iteration)):
 
             self.model.fit(observation_batch, q_value_batch,
                            batch_size=batch, epochs=epoch)
@@ -113,7 +121,9 @@ class DQN_Learning(QTable_Learning):
                 batch_size=batch)
 
     def train_model_episode(self, episode_count: int):
-        for _ in episode_count:
+        print('\n\n')
+        print('Training DQN model (episode)')
+        for _ in tqdm(range(episode_count)):
             episode_buffer = util.ReplayBuffer(1e5, 1)
             observation = self.env.env.reset()
 
@@ -139,7 +149,9 @@ class DQN_Learning(QTable_Learning):
     def evaluate_model(self, episode_count: int):
         evaluation_ep_reward = []
         evaluation_ep_step = []
-        for _ in range(episode_count):
+        print('\n\n')
+        print('Evaluating DQN Model')
+        for i in tqdm(range(episode_count)):
             episode_step_count = 0
             episode_reward = 0
             observation = self.evaluation_env.env.reset()
@@ -153,4 +165,6 @@ class DQN_Learning(QTable_Learning):
                     break
             evaluation_ep_reward.append(episode_reward)
             evaluation_ep_step.append(episode_step_count)
+            logging.info(
+                f'Testing Iteration {i}; total Steps Taken {episode_step_count}; Rewards gained: {episode_reward}')
         return evaluation_ep_reward, evaluation_ep_step

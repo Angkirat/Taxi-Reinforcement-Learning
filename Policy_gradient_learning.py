@@ -12,14 +12,16 @@ class PolicyGradient_learning:
     def __init__(self,
                  env: GymEnvironment,
                  learning_rate: float = 1e-5,
+                 hidden_layer_units: list = [100, 50], 
+                 dropout: list = [0.5, 0.5]
                  ) -> None:
         self.training_env = env
         self.evaluation_env = env
-        self.model = self.create_model()
+        self.model = self.create_model(hidden_layer_units, dropout)
         self.buffer = util.ReplayBuffer(1e5, 1)
         self.optimizer = tf.optimizers.Adam(learning_rate=learning_rate)
 
-    def create_model(self, hidden_layer_units: list = [100, 50], dropout: list = [0.5, 0.5]):
+    def create_model(self, hidden_layer_units: list, dropout: list):
         model = tf.keras.Sequential(name="Policy_Gradient")
         model.add(tf.keras.Input(shape=self.training_env.observation_shape))
         for i, (units, drop) in enumerate(zip(hidden_layer_units, dropout)):
