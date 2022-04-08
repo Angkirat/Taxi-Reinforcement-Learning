@@ -1,5 +1,5 @@
 import gym
-import pickle
+import pickle   #nosec
 import logging
 import numpy as np
 from tqdm import tqdm
@@ -9,12 +9,17 @@ from datetime import datetime
 
 import util
 from gym_environment import GymEnvironment
+from Modified_Taxi_Environment import ENV_NAME, registerEnvironment
 
 logdir = "logs/DQN/" + datetime.now().strftime("%Y%m%d-%H%M%S")
 file_writer = tf.summary.create_file_writer(logdir + "/metrics")
 file_writer.set_as_default()
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir)
 
+logging.basicConfig(
+    format='%(levelname)s:%(asctime)s:%(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
+    filename='logs/DQN-Learning.log', encoding='utf-8', level=(logging.DEBUG)
+)
 
 class DQN_Learning:
     def __init__(
@@ -38,12 +43,11 @@ class DQN_Learning:
         self.dropout = dropout
         self.model_save_path = model_save_path
 
-    def training_main(self, training_episode_count: int, test_episode_count: int, evaluation_percentage: int):
+    def training_main(self, training_episode_count: int, test_episode_count: int):
         self.model = self.create_model()
         training_loss, evaluation_metrics = self.train_model_episode(
             training_episode_count,
-            test_episode_count,
-            evaluation_percentage
+            test_episode_count
         )
         evaluation_ep_reward, evaluation_ep_step = self.evaluate_model(200)
         summary_model = {
@@ -52,7 +56,7 @@ class DQN_Learning:
             'evaluation_ep_reward': evaluation_ep_reward,
             'evaluation_ep_step': evaluation_ep_step
         }
-        pickle.dump(summary_model, open('ModelOutput/DQN-Metrics.pkl', 'wb'))
+        pickle.dump(summary_model, open('ModelOutput/DQN-Metrics_1.pkl', 'wb'))
 
 
     def create_model(self):
@@ -158,16 +162,15 @@ class DQN_Learning:
             action = self.random_action(observation)
             observation, reward, done, _ = self.env.env.step(action)
             episode_buffer.store_effect(idx, action, reward, done)
-            if done:
+            if reward == 20:
                 break
 
-    def train_model_episode(self, training_episode_count: int, test_episode_count: int, evaluation_percentage: int):
-        eval_step = (evaluation_percentage/100) * training_episode_count
+    def train_model_episode(self, training_episode_count: int, test_episode_count: int):
         print('\n\n')
         print('Training DQN model (episode)')
         training_loss = []
         evaluation_metrics = []
-        for i in range(training_episode_count):
+        for i in tqdm(range(training_episode_count)):
             episode_buffer = util.ReplayBuffer(1e5, 1)
             self.load_episode_buffer(episode_buffer)
             state_batch, action_batch, reward_batch, new_state_batch, _ = episode_buffer.sample_all()
@@ -185,7 +188,7 @@ class DQN_Learning:
 
             print(f'DQN Training; Step: {i}; MSE Training Loss: {mse_training_loss}; Mean Training Loss: {mean_training_loss}')
 
-            if i % eval_step:
+            if (i % 100) == 0:
                 logging.info(
                     f'DQN Training; Step: {i}; MSE Training Loss: {mse_training_loss}; Mean Training Loss: {mean_training_loss}')
                 evaluation_ep_reward, evaluation_ep_step = self.evaluate_model(
@@ -215,7 +218,7 @@ class DQN_Learning:
                     action)
                 episode_reward += reward
                 episode_step_count += 1
-                if done:
+                if reward == 20:
                     break
             evaluation_ep_reward.append(episode_reward)
             evaluation_ep_step.append(episode_step_count)
@@ -228,3 +231,21 @@ class DQN_Learning:
 
     def load_model(self):
         self.model.load_model(self.model_save_path)
+
+if __name__ == "__main__":
+    registerEnvironment()
+    env = GymEnvironment(ENV_NAME)
+
+    dqn_agent = DQN_Learning(
+        env = env, 
+        alpha = 0.9,
+        epsilon = 0.5, 
+        gamma = 0.2,
+        learning_rate = 1e-3,
+        hidden_layer_units = [100, 50], 
+        dropout = [0.2, 0.2],
+        initial_state_collection = 1e5, 
+        model_save_path = 'ModelOutput/DQN_leanring_1'
+    )
+
+    dqn_agent.training_main(training_episode_count=500, test_episode_count=100)
