@@ -9,7 +9,7 @@ import tensorflow_probability as tfp
 
 import util
 from gym_environment import GymEnvironment
-from Modified_Taxi_Environment import registerEnvironment, ENV_NAME
+from modified_taxi_environment import registerEnvironment, ENV_NAME
 
 logdir = "logs/Policy/" + datetime.now().strftime("%Y%m%d-%H%M%S")
 file_writer = tf.summary.create_file_writer(logdir + "/metrics")
@@ -82,37 +82,43 @@ class PolicyGradient_learning:
         return (-1 * log_prob * reward)
 
     def train(self, training_episode: int):
-        training_iteration_count = 0
-        # training_loss = []
-        evaluation_list = []
-        for i in range(training_episode):
-            buffer = util.ReplayBuffer(1e5, 1)
-            self.collect_data(buffer)
-            state_batch, reward_batch, action_batch = self.get_batch(buffer)
-            episode_loss = []
-            state_count = state_batch.shape[0]
-            print(f'Iteration {i} State size: ', state_count)
-            state_itr = 0
-            for state, reward, action in zip(state_batch, reward_batch, action_batch):
-                print(f'State Iterator: {state_itr} of {state_count}')
-                state_itr += 1
-                with tf.GradientTape() as tape:
-                    pred = self.model(np.array([state]), training=True)
-                    loss = self.model_loss(pred, action, reward)
-                    episode_loss.append(loss)
-                grads = tape.gradient(loss, self.model.trainable_variables)
-                self.optimizer.apply_gradients(
-                    zip(grads, self.model.trainable_variables))
-            # training_loss.append(mean(episode_loss))
-            if (i % 1) == 0:
-                logging.info(
-                    f'Policy Training; Training Iteration: {training_iteration_count}; Training Loss: {loss}')
-                evaluation_ep_reward, evaluation_ep_step = self.evaluate_model(1)
-                evaluation_list.append(
-                    [evaluation_ep_reward, evaluation_ep_step])
-                self.save_model()
-                self.epsilon = self.epsilon * 0.8
-
+        try:
+            training_iteration_count = 0
+            # training_loss = []
+            evaluation_list = []
+            for i in tqdm(range(training_episode)):
+                buffer = util.ReplayBuffer(1e5, 1)
+                self.collect_data(buffer)
+                state_batch, reward_batch, action_batch = self.get_batch(buffer)
+                episode_loss = []
+                state_count = state_batch.shape[0]
+                # print(f'Iteration {i} State size: ', state_count)
+                state_itr = 0
+                for state, reward, action in zip(state_batch, reward_batch, action_batch):
+                    # print(f'State Iterator: {state_itr} of {state_count}')
+                    state_itr += 1
+                    with tf.GradientTape() as tape:
+                        pred = self.model(np.array([state]), training=True)
+                        loss = self.model_loss(pred, action, reward)
+                        episode_loss.append(loss)
+                    grads = tape.gradient(loss, self.model.trainable_variables)
+                    self.optimizer.apply_gradients(
+                        zip(grads, self.model.trainable_variables))
+                # training_loss.append(mean(episode_loss))
+                self.epsilon = self.epsilon - (self.epsilon * 0.2)
+                if (i % 100) == 0:
+                    logging.info(
+                        f'Policy Training; Training Iteration: {training_iteration_count}; Training Loss: {loss}')
+                    evaluation_ep_reward, evaluation_ep_step = self.evaluate_model(2)
+                    evaluation_list.append(
+                        [evaluation_ep_reward, evaluation_ep_step])
+                    self.save_model()
+        except KeyboardInterrupt:
+            print('Ended the file execution')
+        except Exception as e:
+            print(e)
+        finally:
+            self.save_model()
         return evaluation_list
 
     def compute_action(self, observation: np.ndarray):
@@ -159,15 +165,20 @@ class PolicyGradient_learning:
         return evaluation_ep_reward, evaluation_ep_step
 
     def collect_data(self, buffer: util.ReplayBuffer):
+        episode_reward = 0
+        episode_step = 0
         observation = self.training_env.env.reset()
         while True:
             indx = buffer.store_frame(observation)
             action = self.random_action(observation)
             observation, reward, done, _ = self.training_env.env.step(action)
             buffer.store_effect(indx, action, reward, done)
-            if reward == 20:
+            episode_reward += reward
+            episode_step += 1
+            if done:
                 break
             pass
+        # print(f'Training batch: Reward: {episode_reward} in {episode_step} steps')
         pass
 
     def save_model(self):
@@ -184,15 +195,15 @@ if __name__ == "__main__":
 
     policy_agent = PolicyGradient_learning(
         env=env,
-        model_save_path='ModelOutput/Policy_leanring',
+        model_save_path='ModelOutput/Policy_leanring_1',
         learning_rate=1e-3,
-        hidden_layer_units=[100, 50],
+        hidden_layer_units=[300, 100],
         dropout=[0.2, 0.2],
         gamma=0.2,
-        epsilon=0.5
+        epsilon=1
     )
 
-    policy_agent.training_main(training_episode_size=2)
+    policy_agent.training_main(training_episode_size=1000)
 
     policy_agent.save_model()
 

@@ -9,7 +9,7 @@ from datetime import datetime
 
 import util
 from gym_environment import GymEnvironment
-from Modified_Taxi_Environment import ENV_NAME, registerEnvironment
+from modified_taxi_environment import ENV_NAME, registerEnvironment
 
 logdir = "logs/DQN/" + datetime.now().strftime("%Y%m%d-%H%M%S")
 file_writer = tf.summary.create_file_writer(logdir + "/metrics")
@@ -45,6 +45,7 @@ class DQN_Learning:
 
     def training_main(self, training_episode_count: int, test_episode_count: int):
         self.model = self.create_model()
+        print(self.model.summary())
         training_loss, evaluation_metrics = self.train_model_episode(
             training_episode_count,
             test_episode_count
@@ -66,11 +67,11 @@ class DQN_Learning:
             model.add(tf.keras.layers.Dense(
                 units,
                 activation=tf.keras.activations.relu,
-                kernel_initializer=tf.keras.initializers.VarianceScaling(
-                    scale=2.0,
-                    mode='fan_in',
-                    distribution='truncated_normal'
-                ), name=f"Hidden_Layer_{(i+1)}"
+                # kernel_initializer=tf.keras.initializers.VarianceScaling(
+                #     scale=2.0, mode='fan_in',
+                #     distribution='truncated_normal'
+                # ), 
+                name=f"Hidden_Layer_{(i+1)}"
             ))
             model.add(tf.keras.layers.Dropout(
                 drop,
@@ -79,17 +80,13 @@ class DQN_Learning:
         model.add(tf.keras.layers.Dense(
             self.env.action_size,
             activation=None,
-            kernel_initializer=tf.keras.initializers.RandomUniform(
-                minval=-0.03, maxval=0.03),
-            bias_initializer=tf.keras.initializers.Constant(-0.2), name="outputLayer"
+            # kernel_initializer=tf.keras.initializers.RandomUniform(
+            #     minval=-0.03, maxval=0.03),
+            # bias_initializer=tf.keras.initializers.Constant(-0.2), 
+            name="outputLayer"
         ))
 
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(
-                learning_rate=self.dqn_learning_rate),
-            loss=tf.keras.losses.MeanSquaredError(),
-            metrics=[tf.keras.metrics.MeanSquaredError()]
-        )
+        model.compile(optimizer="Adam",loss="mse",metrics=["mae"])
 
         return model
 
@@ -156,22 +153,28 @@ class DQN_Learning:
                 batch_size=batch)
 
     def load_episode_buffer(self, episode_buffer: util.ReplayBuffer):
+        print('epsilon value is', self.epsilon)
         observation = self.env.env.reset()
+        episode_reward = 0
+        episode_steps = 0
         while True:
             idx = episode_buffer.store_frame(observation)
             action = self.random_action(observation)
             observation, reward, done, _ = self.env.env.step(action)
             episode_buffer.store_effect(idx, action, reward, done)
-            if reward == 20:
+            episode_steps += 1
+            episode_reward += reward
+            if done:
                 break
+        print(f'For Training; Reward = {episode_reward} and steps = {episode_steps}')
 
     def train_model_episode(self, training_episode_count: int, test_episode_count: int):
         print('\n\n')
         print('Training DQN model (episode)')
         training_loss = []
         evaluation_metrics = []
-        for i in tqdm(range(training_episode_count)):
-            episode_buffer = util.ReplayBuffer(1e5, 1)
+        for i in (range(1, training_episode_count)):
+            episode_buffer = util.ReplayBuffer(600, 1)
             self.load_episode_buffer(episode_buffer)
             state_batch, action_batch, reward_batch, new_state_batch, _ = episode_buffer.sample_all()
 
@@ -188,14 +191,14 @@ class DQN_Learning:
 
             print(f'DQN Training; Step: {i}; MSE Training Loss: {mse_training_loss}; Mean Training Loss: {mean_training_loss}')
 
-            if (i % 100) == 0:
+            if (i % 50) == 0:
                 logging.info(
                     f'DQN Training; Step: {i}; MSE Training Loss: {mse_training_loss}; Mean Training Loss: {mean_training_loss}')
-                evaluation_ep_reward, evaluation_ep_step = self.evaluate_model(
-                    test_episode_count)
-                logging.info(
-                    f'Train Evaluation; Average Reward: {mean(evaluation_ep_reward)}; Average Step: {mean(evaluation_ep_step)}')
-                evaluation_metrics.append([evaluation_ep_reward, evaluation_ep_step])
+                # evaluation_ep_reward, evaluation_ep_step = self.evaluate_model(
+                #     test_episode_count)
+                # logging.info(
+                #     f'Train Evaluation; Average Reward: {mean(evaluation_ep_reward)}; Average Step: {mean(evaluation_ep_step)}')
+                # evaluation_metrics.append([evaluation_ep_reward, evaluation_ep_step])
                 self.save_model()
                 self.epsilon = self.epsilon * 0.8
             else:
@@ -224,6 +227,7 @@ class DQN_Learning:
             evaluation_ep_step.append(episode_step_count)
             logging.info(
                 f'Testing Iteration {i}; total Steps Taken {episode_step_count}; Rewards gained: {episode_reward}')
+            print(f'Testing Iteration {i}; total Steps Taken {episode_step_count}; Rewards gained: {episode_reward}')
         return evaluation_ep_reward, evaluation_ep_step
 
     def save_model(self):
@@ -239,13 +243,13 @@ if __name__ == "__main__":
     dqn_agent = DQN_Learning(
         env = env, 
         alpha = 0.9,
-        epsilon = 0.5, 
+        epsilon = 1, 
         gamma = 0.2,
-        learning_rate = 1e-3,
+        learning_rate = 0.1,
         hidden_layer_units = [100, 50], 
         dropout = [0.2, 0.2],
         initial_state_collection = 1e5, 
-        model_save_path = 'ModelOutput/DQN_leanring_1'
+        model_save_path = 'ModelOutput/DQN_leanring_2'
     )
 
-    dqn_agent.training_main(training_episode_count=500, test_episode_count=100)
+    dqn_agent.training_main(training_episode_count=1000, test_episode_count=0)
