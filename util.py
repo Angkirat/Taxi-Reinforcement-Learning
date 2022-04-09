@@ -428,9 +428,16 @@ class ReplayBuffer(object):
             Array of shape (batch_size,) and dtype np.float32
         """
         assert self.can_sample(batch_size)
-        idxes = sample_n_unique(lambda: random.randint(
-            0, self.num_in_buffer - 2), batch_size)
-        return self._encode_sample(idxes)
+        idxes = np.array(sample_n_unique(lambda: random.randint(
+            0, self.num_in_buffer - 2), batch_size))
+        # return self._encode_sample(idxes)
+        state = self.obs[idxes]
+        reward = self.reward[idxes]
+        action = self.action[idxes]
+        done = self.done[idxes]
+        next_state = self.obs[(idxes + 1)]
+
+        return np.array(state), np.array(action), np.array(reward), np.array(next_state), np.array(done)
 
     def sample_all(self, shuffle=False):
         """Sample `batch_size` different transitions.

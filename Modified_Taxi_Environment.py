@@ -1,8 +1,6 @@
 import numpy as np
 from typing import Optional
 
-import tf_agents
-
 import gym
 from gym import spaces
 from gym.envs.toy_text import taxi
@@ -23,11 +21,11 @@ class Modified_Taxi_Environment(taxi.TaxiEnv):
     
     def reset(self, *, seed: Optional[int] = None, return_info: bool = False, options: Optional[dict] = None):
         observation =  super().reset(seed=seed, return_info=return_info, options=options)
-        return self._decode_observation_space(observation=observation)
+        return self._decode_observation_space(observation=observation), observation
     
     def step(self, a):
         observation, reward, done, info = super().step(a)
-        return self._decode_observation_space(observation), reward, done, info
+        return (self._decode_observation_space(observation), observation), reward, done, info
 
 def registerEnvironment():
     register(
@@ -40,6 +38,3 @@ def registerEnvironment():
 if __name__ == "__main__":
     gym_env = gym.make(ENV_NAME)
     print(gym_env.observation_space)
-
-    tf_env = tf_agents.environments.suite_gym.load(ENV_NAME)
-    print(tf_env.time_step_spec())
